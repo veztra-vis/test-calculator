@@ -1,1 +1,295 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maya | Terminal Login</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: { zinc: { 850: '#111113', 950: '#08090A' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: radial-gradient(circle at 50% 50%, #111113 0%, #08090A 100%); background-attachment: fixed; }
+        @keyframes floatOrb { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(20px, -30px) scale(1.1); } }
+        .orb { position: fixed; border-radius: 50%; filter: blur(60px); z-index: -1; opacity: 0.4; animation: floatOrb 10s ease-in-out infinite; pointer-events: none; }
+        .orb-1 { width: 300px; height: 300px; background: rgba(0, 209, 122, 0.2); top: -50px; left: -50px; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(0, 153, 90, 0.15); bottom: -100px; right: -100px; animation-delay: 2s; }
+        .glass-panel { background: rgba(17, 17, 19, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(30, 30, 32, 1); }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="text-zinc-100 min-h-screen p-4 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-400 flex items-center justify-center">
+    
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="w-full max-w-md">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-2xl mx-auto mb-4">M</div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Maya Terminal</h1>
+            <p class="text-sm text-zinc-500 mt-1">Internal Agent Infrastructure</p>
+        </div>
+
+        <!-- Main Login Form -->
+        <div id="login-view" class="glass-panel rounded-2xl p-8 shadow-2xl">
+            <div id="login-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg text-center"></div>
+            <div id="login-success" class="hidden mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-lg text-center"></div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5 font-medium">Employee ID</label>
+                    <input type="text" id="login-id" autocomplete="username" placeholder="e.g. jdelacruz" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-zinc-600">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5 font-medium">Password</label>
+                    <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-zinc-600">
+                </div>
+                <button onclick="handleLogin()" id="login-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition-colors">
+                    Access Terminal
+                </button>
+            </div>
+
+            <div class="mt-6 text-center">
+                <button onclick="showResetView()" class="text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
+                    Forgot password?
+                </button>
+            </div>
+        </div>
+
+        <!-- Password Reset Form -->
+        <div id="reset-view" class="glass-panel rounded-2xl p-8 shadow-2xl hidden">
+            <button onclick="showLoginView()" class="text-xs text-zinc-500 hover:text-white mb-6 flex items-center gap-2 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Back to Login
+            </button>
+            
+            <div id="reset-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg text-center"></div>
+            <div id="reset-success" class="hidden mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-lg text-center"></div>
+
+            <!-- Step 1: Find User -->
+            <div id="reset-step-1">
+                <h3 class="text-lg font-bold text-white mb-2">Reset Password</h3>
+                <p class="text-sm text-zinc-500 mb-6">Enter your Employee ID to locate your account.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5 font-medium">Employee ID</label>
+                        <input type="text" id="reset-id" placeholder="e.g. jdelacruz" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-zinc-600">
+                    </div>
+                    <button onclick="checkResetUser()" class="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition-colors">
+                        Find Account
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Security Question -->
+            <div id="reset-step-2" class="hidden">
+                <h3 class="text-lg font-bold text-white mb-2">Security Verification</h3>
+                <p class="text-sm text-zinc-500 mb-6">Answer your security question to proceed.</p>
+                <div class="bg-zinc-950/50 p-4 rounded-lg border border-zinc-800 mb-4">
+                    <p class="text-[10px] uppercase text-emerald-400 font-bold mb-1">Question</p>
+                    <p class="text-sm text-white" id="reset-question-text">Loading...</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5 font-medium">Your Answer</label>
+                        <input type="text" id="reset-answer" placeholder="Type your answer..." class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-zinc-600">
+                    </div>
+                    <button onclick="verifySecurityAnswer()" class="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition-colors">
+                        Verify Answer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: New Password -->
+            <div id="reset-step-3" class="hidden">
+                <h3 class="text-lg font-bold text-white mb-2">Set New Password</h3>
+                <p class="text-sm text-zinc-500 mb-6">Enter your new credentials below.</p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5 font-medium">New Password</label>
+                        <input type="password" id="reset-new-pass" placeholder="Min. 6 characters" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-4 text-white font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder-zinc-600">
+                    </div>
+                    <button onclick="submitNewPassword()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm uppercase tracking-wider rounded-lg transition-colors">
+                        Update Password & Login
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-[10px] text-zinc-600 mt-6 uppercase tracking-widest">Maya Finance Group • v4.0</p>
+    </div>
+
+    <script>
+        const loginId = document.getElementById('login-id');
+        const loginPass = document.getElementById('login-pass');
+        
+        // Allow Enter key to submit
+        loginId.addEventListener('keypress', e => { if (e.key === 'Enter') loginPass.focus(); });
+        loginPass.addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+
+        function showLoginView() {
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('reset-view').classList.add('hidden');
+            clearMessages();
+        }
+
+        function showResetView() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('reset-view').classList.remove('hidden');
+            document.getElementById('reset-step-1').classList.remove('hidden');
+            document.getElementById('reset-step-2').classList.add('hidden');
+            document.getElementById('reset-step-3').classList.add('hidden');
+            clearMessages();
+        }
+
+        function clearMessages() {
+            ['login-error', 'login-success', 'reset-error', 'reset-success'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                document.getElementById(id).innerText = '';
+            });
+        }
+
+        function showError(id, msg) {
+            clearMessages();
+            document.getElementById(id).innerText = msg;
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        async function handleLogin() {
+            const btn = document.getElementById('login-btn');
+            btn.innerText = 'Authenticating...';
+            btn.disabled = true;
+            clearMessages();
+
+            try {
+                let res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: loginId.value.trim(), password: loginPass.value })
+                });
+
+                let data = await res.json();
+
+                if (!res.ok) {
+                    showError('login-error', data.error);
+                    btn.innerText = 'Access Terminal';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Success
+                localStorage.setItem('maya_token', data.token);
+                window.location.href = '/app';
+
+            } catch (e) {
+                showError('login-error', 'Network error. Please try again.');
+                btn.innerText = 'Access Terminal';
+                btn.disabled = false;
+            }
+        }
+
+        async function checkResetUser() {
+            clearMessages();
+            const id = document.getElementById('reset-id').value.trim();
+            if (!id) return showError('reset-error', 'Please enter your Employee ID.');
+
+            try {
+                let res = await fetch('/api/auth/check-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: id })
+                });
+                let data = await res.json();
+
+                if (!res.ok) return showError('reset-error', data.error);
+                if (!data.securityQuestion) return showError('reset-error', 'No security question set up for this account. Contact admin.');
+
+                document.getElementById('reset-question-text').innerText = data.securityQuestion;
+                document.getElementById('reset-step-1').classList.add('hidden');
+                document.getElementById('reset-step-2').classList.remove('hidden');
+            } catch (e) {
+                showError('reset-error', 'Network error.');
+            }
+        }
+
+        async function verifySecurityAnswer() {
+            clearMessages();
+            const id = document.getElementById('reset-id').value.trim();
+            const answer = document.getElementById('reset-answer').value.trim();
+            if (!answer) return showError('reset-error', 'Please enter your answer.');
+
+            try {
+                let res = await fetch('/api/auth/verify-security', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: id, answer: answer })
+                });
+                
+                if (!res.ok) {
+                    let data = await res.json();
+                    return showError('reset-error', data.error);
+                }
+
+                document.getElementById('reset-step-2').classList.add('hidden');
+                document.getElementById('reset-step-3').classList.remove('hidden');
+            } catch (e) {
+                showError('reset-error', 'Network error.');
+            }
+        }
+
+        async function submitNewPassword() {
+            clearMessages();
+            const id = document.getElementById('reset-id').value.trim();
+            const newPass = document.getElementById('reset-new-pass').value;
+            
+            if (!newPass || newPass.length < 6) return showError('reset-error', 'Password must be at least 6 characters.');
+
+            try {
+                let res = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: id, newPassword: newPass })
+                });
+
+                if (!res.ok) {
+                    let data = await res.json();
+                    return showError('reset-error', data.error);
+                }
+
+                // Auto login after reset
+                let loginRes = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: id, password: newPass })
+                });
+                
+                let loginData = await loginRes.json();
+                if (loginRes.ok) {
+                    localStorage.setItem('maya_token', loginData.token);
+                    window.location.href = '/app';
+                } else {
+                    showLoginView();
+                    document.getElementById('login-success').innerText = 'Password updated successfully! You can now login.';
+                    document.getElementById('login-success').classList.remove('hidden');
+                }
+
+            } catch (e) {
+                showError('reset-error', 'Network error.');
+            }
+        }
+    </script>
+</body>
+  </html>
