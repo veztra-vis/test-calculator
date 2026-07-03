@@ -1,0 +1,15 @@
+{
+  "name": "maya-app",
+  "version": "4.0.0",
+  "description": "Maya Internal Agent Terminal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "mongodb": "^6.3.0",
+    "node-fetch": "^2.7.0"
+  }
+}
