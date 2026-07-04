@@ -6,18 +6,15 @@
     <title>Maya | Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* CRITICAL BASE STYLES (No CDN dependency) */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Inter', sans-serif; background: #08090A; color: #e4e4e7; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         button, a { touch-action: manipulation; cursor: pointer; }
-        input, select, textarea { font-size: 16px !important; } /* Stops tablet zoom */
+        input, select, textarea { font-size: 16px !important; }
         
-        /* Layout */
         .app-wrapper { display: flex; flex: 1; overflow: hidden; position: relative; }
         .main-content { flex: 1; overflow-y: auto; background: #08090A; padding: 20px; }
         @media (min-width: 768px) { .main-content { padding: 40px; } }
 
-        /* Sidebar */
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 40; backdrop-filter: blur(2px); display: none; }
         .sidebar-overlay.open { display: block; }
         .sidebar { position: fixed; top: 0; left: 0; width: 300px; height: 100%; background: #09090b; border-right: 1px solid #27272a; display: flex; flex-direction: column; z-index: 50; transform: translateX(-100%); transition: transform 0.3s ease; }
@@ -36,18 +33,15 @@
         .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #09090b; border-bottom: 1px solid #27272a; z-index: 30; }
         @media (min-width: 768px) { .topbar { display: none; } }
 
-        /* Pages */
         .page { display: none; }
         .page.active { display: block; }
         .page-chat.active { display: flex; }
 
-        /* Dashboard */
         .dash-grid { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 800px; margin: 0 auto; }
         @media (min-width: 768px) { .dash-grid { grid-template-columns: 1fr 1fr; } }
         .dash-card { background: rgba(24, 24, 27, 0.8); border: 1px solid #27272a; border-radius: 16px; padding: 32px; text-align: left; transition: border 0.2s; }
         .dash-card:active { border-color: #00D17A; }
 
-        /* Chat */
         .chat-container { height: calc(100vh - 120px); max-width: 1000px; margin: 0 auto; display: flex; background: rgba(24, 24, 27, 0.8); border: 1px solid #27272a; border-radius: 16px; overflow: hidden; }
         @media (min-width: 768px) { .chat-container { height: calc(100vh - 80px); } }
         .chat-sidebar { width: 220px; border-right: 1px solid #27272a; display: flex; flex-direction: column; flex-shrink: 0; }
@@ -64,12 +58,14 @@
         .dm-btn { width: 100%; text-align: left; padding: 10px 12px; font-size: 13px; color: #d4d4d8; background: none; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; }
         .dm-btn:active, .dm-btn.sel { background: #18181b; }
         
-        .msg { max-width: 75%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; }
+        .msg { max-width: 75%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; position: relative; }
         .msg-mine { background: #00995A; color: white; border-bottom-right-radius: 4px; align-self: flex-end; }
         .msg-theirs { background: #18181b; color: #e4e4e7; border-bottom-left-radius: 4px; align-self: flex-start; }
         .role-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: rgba(0, 209, 122, 0.15); color: #00D17A; }
+        
+        .msg-del-btn { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: none; align-items: center; justify-content: center; font-weight: bold; }
+        .msg:hover .msg-del-btn { display: flex; }
 
-        /* Admin */
         .admin-panel { max-width: 900px; margin: 0 auto; background: rgba(24, 24, 27, 0.8); border: 1px solid #27272a; border-radius: 16px; padding: 24px; padding-bottom: 80px; }
         .admin-input { width: 100%; background: #18181b; border: 1px solid #27272a; border-radius: 10px; padding: 14px; color: white; outline: none; margin-bottom: 12px; }
         .admin-input:focus { border-color: #00D17A; }
@@ -80,7 +76,6 @@
         th { background: #09090b; color: #a1a1aa; font-size: 11px; text-transform: uppercase; }
         .del-btn { background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
@@ -155,7 +150,7 @@
                         <div class="chat-header"><h3 style="font-size:14px;font-weight:700;color:white;">Channels</h3></div>
                         <div style="flex:1;overflow-y:auto;padding:8px;">
                             <button class="ch-btn sel" onclick="loadChannel('general', this)"><span style="color:#71717a;">#</span> general</button>
-                            <button class="ch-btn" onclick="loadChannel('announcements', this)"><span style="color:#71717a;">#</span> announcements</button>
+                            <button id="ann-btn" class="ch-btn" style="display:none;" onclick="loadChannel('announcements', this)"><span style="color:#71717a;">#</span> announcements</button>
                             <div style="padding:12px 12px 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#52525b;font-weight:600;">Members</div>
                             <div id="dm-list"></div>
                         </div>
@@ -219,7 +214,7 @@
         }
 
         window.onload = async function() {
-            if (!token) return window.location.href = '/';
+            if (!token) return window.location.href = '/login.html'; // Change to your login page name
             try {
                 let res = await fetch('/api/auth/verify', { headers: { 'x-maya-token': token } });
                 if (!res.ok) throw new Error('Auth failed');
@@ -228,7 +223,8 @@
                 setupUI();
                 startPolling();
             } catch (e) {
-                window.location.href = '/';
+                localStorage.removeItem('maya_token');
+                window.location.href = '/login.html';
             }
         };
 
@@ -238,40 +234,34 @@
             document.getElementById('sidebar-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
             document.getElementById('dash-name').innerText = currentUser.name.split(' ')[0];
             
+            // Role logic for Announcements and Admin Panel
+            if (['ADMIN', 'OPERATIONS MANAGER', 'TEAM LEADER'].includes(currentUser.role)) {
+                document.getElementById('ann-btn').style.display = 'flex'; // Show announcements
+            }
             if (['ADMIN', 'OPERATIONS MANAGER', 'TEAM LEADER'].includes(currentUser.role)) {
                 document.getElementById('admin-nav-label').style.display = 'block';
                 document.getElementById('admin-nav-btn').style.display = 'block';
             }
             
-            // Enable hitting "Enter" to send a message
             document.getElementById('msg-input').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    sendMessage(e);
-                }
+                if (e.key === 'Enter') sendMessage(e);
             });
 
             loadUsers();
         }
 
         function showPage(pageId, btnEl) {
-            // Close sidebar on tablet
             if (window.innerWidth < 768) {
                 document.getElementById('sidebar').classList.remove('open');
                 document.getElementById('sidebar-overlay').classList.remove('open');
             }
-
-            // Hide all pages
             document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-            
-            // Show selected page
             let targetPage = document.getElementById('page-' + pageId);
             if (targetPage) targetPage.classList.add('active');
 
-            // Highlight nav
             document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
             if (btnEl) btnEl.classList.add('active');
 
-            // Load data if needed
             if (pageId === 'admin') loadAdminTable();
             if (pageId === 'comms') getMessages();
         }
@@ -283,8 +273,8 @@
                 if (!res.ok) throw new Error();
                 allUsers = await res.json();
                 let html = '';
-                allUsers.filter(function(u) { return u.employeeId !== currentUser.id; }).forEach(function(u) {
-                    html += '<button class="dm-btn" onclick="loadDM(\'' + u.employeeId + '\', this)"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + u.fullName + '</span><span class="role-tag" style="margin-left:8px;">' + u.role.split(' ')[0] + '</span></button>';
+                allUsers.filter(u => u.employeeId !== currentUser.employeeId).forEach(u => {
+                    html += `<button class="dm-btn" onclick="loadDM('${u.employeeId}', this)"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${u.fullName}</span><span class="role-tag" style="margin-left:8px;">${u.role.split(' ')[0]}</span></button>`;
                 });
                 document.getElementById('dm-list').innerHTML = html;
             } catch (e) {
@@ -292,11 +282,11 @@
             }
         }
 
-        function  loadChannel(id, el) {
+        function loadChannel(id, el) {
             currentChatTarget = { type: 'channel', id: id };
             document.getElementById('chat-title').innerText = '# ' + id;
             document.getElementById('chat-sub').innerText = 'Company-wide channel';
-            document.querySelectorAll('.ch-btn, .dm-btn').forEach(function(b) { b.classList.remove('sel'); });
+            document.querySelectorAll('.ch-btn, .dm-btn').forEach(b => b.classList.remove('sel'));
             if (el) el.classList.add('sel');
             getMessages();
         }
@@ -304,10 +294,13 @@
         function loadDM(userId, el) {
             let user = allUsers.find(u => u.employeeId === userId);
             if (!user) return;
-            currentChatTarget = { type: 'dm', id: userId };
+            // Create a consistent room ID so both users look at the same chat
+            let dmRoomId = [currentUser.employeeId, userId].sort().join('_');
+            currentChatTarget = { type: 'dm', id: dmRoomId };
+            
             document.getElementById('chat-title').innerText = user.fullName;
-            document.getElementById('chat-sub').innerText = user.role;
-            document.querySelectorAll('.ch-btn, .dm-btn').forEach(function(b) { b.classList.remove('sel'); });
+            document.getElementById('chat-sub').innerText = 'Direct Message';
+            document.querySelectorAll('.ch-btn, .dm-btn').forEach(b => b.classList.remove('sel'));
             if (el) el.classList.add('sel');
             getMessages();
         }
@@ -315,17 +308,23 @@
         async function getMessages() {
             if (!currentChatTarget) return;
             try {
-                let url = '/api/comms/messages?type=' + currentChatTarget.type + '&id=' + currentChatTarget.id;
+                let url = `/api/comms/messages?type=${currentChatTarget.type}&id=${currentChatTarget.id}`;
                 let res = await fetch(url, { headers: { 'x-maya-token': token } });
                 if (!res.ok) throw new Error();
                 let messages = await res.json();
                 
                 let html = '';
-                messages.forEach(function(m) {
-                    let isMine = m.userId === currentUser.id;
-                    // Basic XSS protection
+                messages.forEach(m => {
+                    let isMine = m.userId === currentUser.employeeId;
+                    let canDelete = isMine || ['ADMIN', 'OPERATIONS MANAGER', 'TEAM LEADER'].includes(currentUser.role);
                     let safeText = m.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                    html += '<div class="msg ' + (isMine ? 'msg-mine' : 'msg-theirs') + '"><strong>' + (isMine ? 'You' : m.userName) + '</strong><br>' + safeText + '</div>';
+                    
+                    html += `
+                        <div class="msg ${isMine ? 'msg-mine' : 'msg-theirs'}">
+                            ${canDelete ? `<div class="msg-del-btn" onclick="deleteMessage('${m._id}')">X</div>` : ''}
+                            <strong>${isMine ? 'You' : m.userName}</strong><br>${safeText}
+                        </div>
+                    `;
                 });
                 
                 document.getElementById('chat-messages').innerHTML = html || '<p style="color:#52525b;font-size:14px;text-align:center;margin-top:40px;">No messages yet. Say hi!</p>';
@@ -336,6 +335,19 @@
             }
         }
 
+        async function deleteMessage(id) {
+            if (!confirm('Delete this message?')) return;
+            try {
+                await fetch(`/api/comms/messages/${id}`, { 
+                    method: 'DELETE', 
+                    headers: { 'x-maya-token': token } 
+                });
+                getMessages();
+            } catch (e) {
+                alert('Failed to delete');
+            }
+       }
+        
         async function sendMessage(e) {
             if (e) e.preventDefault();
             let input = document.getElementById('msg-input');
@@ -349,20 +361,19 @@
                     headers: { 'Content-Type': 'application/json', 'x-maya-token': token },
                     body: JSON.stringify({ type: currentChatTarget.type, targetId: currentChatTarget.id, text: text })
                 });
-                getMessages(); // Refresh messages immediately
+                getMessages();
             } catch (err) {
                 alert('Failed to send message');
             }
         }
 
-        function startPolling() {
+      function startPolling() {
             if (chatInterval) clearInterval(chatInterval);
             chatInterval = setInterval(() => {
-                // Only poll if the comms page is currently open
                 if (document.getElementById('page-comms').classList.contains('active')) {
                     getMessages();
                 }
-            }, 3000); // Polls every 3 seconds for new messages
+            }, 3000);
         }
 
         // --- ADMIN LOGIC ---
@@ -372,8 +383,8 @@
                 if (!res.ok) throw new Error();
                 let users = await res.json();
                 let html = '';
-                users.forEach(function(u) {
-                    html += '<tr><td style="font-family:monospace;">' + u.employeeId + '</td><td>' + u.fullName + '</td><td style="text-align:center;"><span class="role-tag">' + u.role + '</span></td><td style="text-align:right;"><button class="del-btn" onclick="deleteUser(\'' + u.employeeId + '\')">Delete</button></td></tr>';
+                users.forEach(u => {
+                    html += `<tr><td style="font-family:monospace;">${u.employeeId}</td><td>${u.fullName}</td><td style="text-align:center;"><span class="role-tag">${u.role}</span></td><td style="text-align:right;"><button class="del-btn" onclick="deleteUser('${u.employeeId}')">Delete</button></td></tr>`;
                 });
                 document.getElementById('admin-tbody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:#52525b;padding:24px;">No users found.</td></tr>';
             } catch (e) {
@@ -395,13 +406,17 @@
                     headers: { 'Content-Type': 'application/json', 'x-maya-token': token },
                     body: JSON.stringify({ fullName, employeeId: empId, password: pass, role })
                 });
-                if (!res.ok) throw new Error();
+                if (!res.ok) {
+                    let data = await res.json();
+                    throw new Error(data.message || 'Failed');
+                }
                 document.getElementById('c-fullname').value = '';
                 document.getElementById('c-empid').value = '';
                 document.getElementById('c-pass').value = '';
                 loadAdminTable();
+                loadUsers(); // Refresh DM list
             } catch (e) {
-                alert('Failed to create user');
+                alert(e.message);
             }
         }
 
@@ -413,6 +428,7 @@
                     headers: { 'x-maya-token': token } 
                 });
                 loadAdminTable();
+                loadUsers();
             } catch (e) {
                 alert('Failed to delete');
             }
@@ -420,8 +436,8 @@
 
         function handleLogout() {
             localStorage.removeItem('maya_token');
-            window.location.href = '/';
-            }
+            window.location.href = '/login.html';
+        }
     </script>
 </body>
 </html>
