@@ -1,40 +1,136 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maya | Terminal Login</title>
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Maya | Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: #08090A; color: #f4f4f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        input { font-size: 16px !important; } /* Prevents tablet zoom */
+        .box { background: rgba(17, 17, 19, 0.8); border: 1px solid #27272a; border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; }
+        .logo { width: 60px; height: 60px; background: rgba(0, 209, 122, 0.1); border: 1px solid rgba(0, 209, 122, 0.3); color: #00D17A; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; border-radius: 16px; margin: 0 auto 20px; }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 8px; }
+        p.sub { text-align: center; color: #71717a; font-size: 14px; margin-bottom: 32px; }
+        label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: #71717a; margin-bottom: 8px; font-weight: 600; }
+        input[type="text"], input[type="password"] { width: 100%; background: #09090b; border: 1px solid #27272a; border-radius: 10px; padding: 16px; color: white; outline: none; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; transition: border 0.2s; }
+        input:focus { border-color: #00D17A; }
+        button { width: 100%; background: #00D17A; color: #08090A; border: none; border-radius: 10px; padding: 16px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; margin-bottom: 16px; touch-action: manipulation; }
+        button:hover { background: #00F590; }
+        .link { text-align: center; font-size: 14px; color: #52525b; cursor: pointer; }
+        .link:hover { color: #00D17A; }
+        .error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 12px; border-radius: 8px; font-size: 14px; text-align: center; margin-bottom: 20px; display: none; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="box" id="login-box">
+        <div class="logo">M</div>
+        <h1>Maya Terminal</h1>
+        <p class="sub">Internal Agent Infrastructure</p>
+        
+        <div class="error" id="err"></div>
+        
+        <label>Employee ID</label>
+        <input type="text" id="id" placeholder="e.g. jdelacruz" autocomplete="username">
+        
+        <label>Password</label>
+        <input type="password" id="pass" placeholder="••••••••" autocomplete="current-password">
+        
+        <button onclick="login()">Access Terminal</button>
+        <div class="link" onclick="showReset()">Forgot password?</div>
+    </div>
+
+    <div class="box hidden" id="reset-box">
+        <div class="link" style="text-align: left; margin-bottom: 20px;" onclick="showLogin()">← Back to Login</div>
+        <h1 style="font-size: 20px; text-align: left; margin-bottom: 8px;">Reset Password</h1>
+        <p class="sub" style="text-align: left; margin-bottom: 24px;">Enter your Employee ID to proceed.</p>
+        
+        <div class="error" id="rerr"></div>
+
+        <div id="step1">
+            <input type="text" id="rid" placeholder="Employee ID">
+            <button onclick="checkUser()">Find Account</button>
+        </div>
+
+        <div id="step2" class="hidden">
+            <div style="background: #18181b; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #27272a;">
+                <div style="font-size: 10px; color: #00D17A; font-weight: 700; margin-bottom: 4px;">SECURITY QUESTION</div>
+                <div id="rquestion" style="font-size: 16px;"></div>
+            </div>
+            <input type="text" id="ranswer" placeholder="Your answer">
+            <button onclick="verifyAns()">Verify</button>
+        </div>
+
+        <div id="step3" class="hidden">
+            <input type="password" id="rnewpass" placeholder="New Password (min 6 chars)">
+            <button onclick="resetPass()">Update & Login</button>
+        </div>
+    </div>
+
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
-                    colors: { zinc: { 850: '#111113', 950: '#08090A' } }
-                }
-            }
+        document.getElementById('pass').addEventListener('keypress', e => { if(e.key === 'Enter') login(); });
+        
+        function showLogin() { document.getElementById('login-box').classList.remove('hidden'); document.getElementById('reset-box').classList.add('hidden'); }
+        function showReset() { document.getElementById('login-box').classList.add('hidden'); document.getElementById('reset-box').classList.remove('hidden'); document.getElementById('step1').classList.remove('hidden'); document.getElementById('step2').classList.add('hidden'); document.getElementById('step3').classList.add('hidden'); }
+        function err(id, msg) { document.querySelectorAll('.error').forEach(e=>e.style.display='none'); let el = document.getElementById(id); el.innerText = msg; el.style.display = 'block'; }
+
+        async function login() {
+            const id = document.getElementById('id').value.trim();
+            const pass = document.getElementById('pass').value;
+            if(!id || !pass) return err('err', 'Please fill out all fields.');
+            try {
+                let res = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({employeeId: id, password: pass}) });
+                let data = await res.json();
+                if(!res.ok) return err('err', data.error);
+                localStorage.setItem('maya_token', data.token);
+                window.location.href = '/app';
+            } catch(e) { err('err', 'Network error'); }
+        }
+
+        async function checkUser() {
+            let id = document.getElementById('rid').value.trim();
+            if(!id) return err('rerr', 'Enter ID');
+            try {
+                let res = await fetch('/api/auth/check-user', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({employeeId: id}) });
+                let data = await res.json();
+                if(!res.ok) return err('rerr', data.error);
+                if(!data.securityQuestion) return err('rerr', 'No security question set. Contact admin.');
+                document.getElementById('rquestion').innerText = data.securityQuestion;
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+            } catch(e) { err('rerr', 'Network error'); }
+        }
+
+        async function verifyAns() {
+            let id = document.getElementById('rid').value.trim();
+            let ans = document.getElementById('ranswer').value.trim();
+            if(!ans) return err('rerr', 'Enter answer');
+            try {
+                let res = await fetch('/api/auth/verify-security', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({employeeId: id, answer: ans}) });
+                if(!res.ok) { let data = await res.json(); return err('rerr', data.error); }
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3').classList.remove('hidden');
+            } catch(e) { err('rerr', 'Network error'); }
+        }
+
+        async function resetPass() {
+            let id = document.getElementById('rid').value.trim();
+            let np = document.getElementById('rnewpass').value;
+            if(np.length < 6) return err('rerr', 'Min 6 characters');
+            try {
+                await fetch('/api/auth/reset-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({employeeId: id, newPassword: np}) });
+                let loginRes = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({employeeId: id, password: np}) });
+                let data = await loginRes.json();
+                if(loginRes.ok) { localStorage.setItem('maya_token', data.token); window.location.href = '/app'; }
+                else { showLogin(); err('err', 'Password updated! You can now login.'); }
+            } catch(e) { err('rerr', 'Network error'); }
         }
     </script>
-    <style>
-        /* TABLET OPTIMIZATIONS */
-        * { -webkit-tap-highlight-color: transparent; }
-        button, a { touch-action: manipulation; }
-        
-        body { background: radial-gradient(circle at 50% 50%, #111113 0%, #08090A 100%); background-attachment: fixed; }
-        
-        @keyframes floatOrb { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(20px, -30px) scale(1.1); } }
-        .orb { position: fixed; border-radius: 50%; filter: blur(60px); z-index: -1; opacity: 0.4; animation: floatOrb 10s ease-in-out infinite; pointer-events: none; }
-        .orb-1 { width: 300px; height: 300px; background: rgba(0, 209, 122, 0.2); top: -50px; left: -50px; }
-        .orb-2 { width: 400px; height: 400px; background: rgba(0, 153, 90, 0.15); bottom: -100px; right: -100px; animation-delay: 2s; }
-        
-        .glass-panel { background: rgba(17, 17, 19, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(30, 30, 32, 1); }
-        
-        /* Force 16px font on inputs to prevent iOS zoom */
-        input { font-size: 16px !important; }
+</body>
+</html>        input { font-size: 16px !important; }
     </style>
 </head>
 <body class="text-zinc-100 min-h-full p-4 font-sans antialiased selection:bg-emerald-500/30 selection:text-emerald-400 flex items-center justify-center">
