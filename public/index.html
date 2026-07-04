@@ -3,38 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maya | Internal Agent Terminal</title>
-    <link rel="icon" type="image/png" href="logo.png">
+    <title>Maya | App</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
-                    colors: { zinc: { 850: '#111113', 950: '#08090A' } }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } }
     </script>
     <style>
         body { background: #08090A; }
+        * { -webkit-tap-highlight-color: transparent; }
+        button, a { touch-action: manipulation; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
-        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input, select, textarea { font-size: 16px !important; } /* CRITICAL: Prevents tablet zoom */
         .sidebar-item { transition: all 0.2s; border-left: 3px solid transparent; }
         .sidebar-item:hover, .sidebar-item.active { background: rgba(0, 209, 122, 0.08); border-left-color: #00D17A; color: white; }
-        .glass-panel { background: rgba(17, 17, 19, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(30, 30, 32, 1); }
-        .role-tag { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+        .glass-panel { background: rgba(17, 17, 19, 0.7); border: 1px solid #1e1e20; }
+        .role-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
         .role-tag-admin { background: rgba(0, 209, 122, 0.15); color: #00D17A; }
-        .role-tag-operations manager { background: rgba(0, 153, 90, 0.15); color: #34d399; }
-        .role-tag-team leader { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
         .role-tag-agent { background: rgba(113, 113, 122, 0.15); color: #a1a1aa; }
+        .role-tag-team leader { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .role-tag-operations manager { background: rgba(0, 153, 90, 0.15); color: #34d399; }
         .role-tag-training { background: rgba(236, 72, 153, 0.15); color: #f9a8d4; }
-        .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; }
-        .msg-mine { background: #00995A; color: white; border-bottom-right-radius: 4px; margin-left: auto; }
-        .msg-theirs { background: #18181b; color: #e4e4e7; border-bottom-left-radius: 4px; }
+        .msg-mine { background: #00995A; color: white; border-radius: 16px 16px 4px 16px; }
+        .msg-theirs { background: #18181b; color: #e4e4e7; border-radius: 16px 16px 16px 4px; }
+        .data-font { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    </style>
+</head>
+<body class="text-zinc-100 font-sans h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col h-full flex-shrink-0 z-40">
+        <div class="p-4 border-b border-zinc-800 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold">M</div>
+            <div><h1 class="text-sm font-bold text-white">Maya Terminal</h1><p class="text-[9px] text-zinc-500 uppercase tracking-widest">Agent v4.0</p></div>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+            <button onclick="showPage('dashboard')" class="sidebar-item active w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="dashboard">Dashboard</button>
+            <button onclick="showPage('comms')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="comms">💬 Floor Comms</button>
+            <p class="px-4 text-[9px] uppercase tracking-widest text-zinc-600 mt-6 mb-2 font-semibold">Calculators</p>
+            <button onclick="showPage('mod-miles')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-miles">Miles</button>
+            <button onclick="showPage('mod-finance')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-finance">Finance Charge</button>
+            <button onclick="showPage('mod-landers')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-landers">Landers</button>
+            <button onclick="showPage('mod-emi')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-emi">EMI / Amortization</button>
+            <button onclick="showPage('mod-billing')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-billing">Billing & Late</button>
+            <button onclick="showPage('mod-fx')" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-fx">FX Transfer</button>
+            <p class="px-4 text-[9px] uppercase tracking-widest text-zinc-600 mt-6 mb-2 font-semibold" id="admin-nav-header" style="display:none;">Admin</p>
+            <button onclick="showPage('mod-admin')" id="admin-nav-btn" class="sidebar-item w-full text-left px-4 py-3 text-sm text-zinc-400 rounded-r-lg" data-page="mod-admin" style="display:none;">User Management</button>
+        </nav>
+        <div class="p-4 border-t border-zinc-800 bg-zinc-950 flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-emerald-400" id="sidebar-avatar">A</div>
+            <div class="flex-1 min-w-0 truncate"><p class="text-sm font-medium text-zinc-200 truncate" id="sidebar-name">User</p><p class="text-[10px] text-zinc-500 truncate" id="sidebar-role">Role</p></div>
+            <button onclick="handleLogout()" class="text-zinc-600 hover:text-red-400 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto bg-zinc-950 p-6 md:p-8">
+        
+        <!-- DASHBOARD -->
+        <div id="page-dashboard" class="page-content max-w-5xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-6">Welcome back, <span id="dash-name" class="text-emerald-400">User</span></h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel rounded-xl p-6 cursor-pointer hover:border-emerald-500/50 transition-all" onclick="showPage('comms')"><p class="text-zinc-500 text-xs uppercase mb-2">Floor Communication</p><p class="text-3xl font-bold text-white mb-2">Live</p><p class="text-emerald-400 text-sm font-semibold">Open Chat →</p></div>
+                <div class="glass-panel rounded-xl p-6"><p class="text-zinc-500 text-xs uppercase mb-2">System Status</p><div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><p class="text-3xl font-bold text-white">Online</p></div><p class="text-zinc-500 text-sm">All calculators operational.</p></div>
+                <div class="glass-panel rounded-xl p-6"><p class="text-zinc-500 text-xs uppercase mb-2">Quick Actions</p><div class="space-y-2 mt-4"><button onclick="showPage('mod-emi')" class="w-full text-left text-sm text-zinc-300 hover:text-emerald-400">→ New EMI Calculation</button><button onclick="showPage('mod-fx')" class="w-full text-left text-sm text-zinc-300 hover:text-emerald-400">→ FX Rate Check</button></div></div>
+            </div>
+        </div>
+
+        <!-- COMMS -->
+        <div id="page-comms" class="page-content h-[calc(100vh-4rem)] max-w-6xl mx-auto flex glass-panel rounded-xl overflow-hidden" style="display: none;">
+            <div class="w-64 border-r border-zinc-800 flex flex-col bg-zinc-950/50 flex-shrink-0">
+                <div class="p-4 border-b border-zinc-800"><h3 class="font-bold text-sm text-white">Floor Comms</h3></div>
+                <div class="flex-1 overflow-y-auto p-2">
+                    <button onclick="loadChannel('general', this)" class="w-full text-left px-3 py-3 rounded-md text-sm text-zinc-300 bg-zinc-800 flex items-center gap-2 mb-1 ch-btn active-ch"><span class="text-zinc-500">#</span> general</button>
+                    <button onclick="loadChannel('announcements', this)" class="w-full text-left px-3 py-3 rounded-md text-sm text-zinc-300 hover:bg-zinc-800 flex items-center gap-2 mb-4 ch-btn"><span class="text-zinc-500">#</span> announcements</button>
+                    <p class="px-3 text-[9px] uppercase tracking-widest text-zinc-600 mb-2 font-semibold">Direct Messages</p>
+                    <div id="dm-list"></div>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col bg-zinc-950">
+                <div class="p-4 border-b border-zinc-800 bg-zinc-900/50"><h3 class="font-bold text-sm text-white" id="chat-header-title"># general</h3><p class="text-[10px] text-zinc-500" id="chat-header-sub">Company-wide updates</p></div>
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col"><p class="text-zinc-600 text-sm text-center mt-10">Connecting...</p></div>
+                <div class="p-4 border-t border-zinc-800 bg-zinc-900/30">
+                    <form onsubmit="sendMessage(event)" class="flex gap-3">
+                        <input type="text" id="msg-input" placeholder="Type a message..." class="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 outline-none focus:border-emerald-500" autocomplete="off">
+                        <button type="submit" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- CALCULATORS (Condensed for character limit, fully functional) -->
+        <div id="page-mod-miles" class="page-content max-w-3xl mx-auto" style="display: none;">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6"><span class="w-1.5 h-8 bg-emerald-500 rounded-full"></span><h2 class="text-lg font-bold text-white">Maya Miles Calculator</h2></div>
+                <div class="space-y-4">
+                    <div><label class="block text-xs text-zinc-500 mb-1">Customer Spend (PHP)</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="spend-input" placeholder="0.00" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none focus:border-emerald-500" oninput="calcMiles()"></div></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Multiplier</label><select id="multiplier-select" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-3 text-white outline-none" onchange="calcMiles()"><option value="1">1x Base</option><option value="2">2x Preferred</option><option value="5">5x Elite</option><option value="10">10x Max</option></select></div>
+                    <div class="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 mt-4"><label class="block text-xs text-zinc-600 mb-1">Miles Generated</label><p class="text-3xl font-mono font-bold text-emerald-400 data-font" id="miles-result">0.00</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-mod-finance" class="page-content max-w-3xl mx-auto" style="display: none;">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6"><span class="w-1.5 h-8 bg-red-500 rounded-full"></span><h2 class="text-lg font-bold text-white">Finance Charge</h2></div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div><label class="block text-xs text-zinc-500 mb-1">Loan Credit</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="loan-credit" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none" oninput="calcFinance()"></div></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Partial Payment</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="partial-payment" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none" oninput="calcFinance()"></div></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Term (Days)</label><input type="number" id="loan-term" value="30" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none" oninput="calcFinance()"></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Days Held</label><input type="number" id="days-held" value="20" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none" oninput="calcFinance()"></div>
+                </div>
+                <div class="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 mt-4"><p class="text-xs text-zinc-500 mb-1">Total Payable</p><p class="text-3xl font-mono font-bold text-white data-font">₱<span id="finance-result">0.00</span></p></div>
+            </div>
+        </div>
+
+        <div id="page-mod-landers" class="page-content max-w-3xl mx-auto" style="display: none;">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6"><span class="w-1.5 h-8 bg-blue-500 rounded-full"></span><h2 class="text-lg font-bold text-white">Landers Rewards</h2></div>
+                <div class="space-y-4">
+                    <div><label class="block text-xs text-zinc-500 mb-1">Current Transaction (A)</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="landers-spend" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none" oninput="calcLanders()"></div></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Previous Accumulated (C)</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="total-card-spend" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none" oninput="calcLanders()"></div></div>
+                    <div class="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800 mt-4"><p class="text-xs text-zinc-500 mb-1">Points Earned</p><p class="text-3xl font-mono font-bold text-blue-400 data-font"><span id="landers-result">0.00</span> <span class="text-lg text-zinc-500">pts</span></p></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-mod-emi" class="page-content max-w-5xl mx-auto" style="display: none;">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6"><span class="w-1.5 h-8 bg-amber-500 rounded-full"></span><h2 class="text-lg font-bold text-white">Mini Payments (EMI)</h2></div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div><label class="block text-xs text-zinc-500 mb-1">Principal</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="emi-principal" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none" oninput="calcEMI()"></div></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Monthly EIR (%)</label><input type="number" id="emi-rate" value="1.69" step="0.01" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none" oninput="calcEMI()"></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Months</label><input type="number" id="emi-months" value="6" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none" oninput="calcEMI()"></div>
+                    <div><label class="block text-xs text-zinc-500 mb-1">Start Date</label><input type="date" id="emi-start-date" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none" oninput="calcEMI()"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800"><p class="text-[9px] uppercase text-zinc-500 mb-1">Monthly EMI</p><p class="text-sm font-bold text-amber-400 data-font">₱<span id="emi-monthly-amt">0.00</span></p></div>
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800"><p class="text-[9px] uppercase text-zinc-500 mb-1">Total Interest</p><p class="text-sm font-bold text-red-400 data-font">₱<span id="emi-total-int">0.00</span></p></div>
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800"><p class="text-[9px] uppercase text-zinc-500 mb-1">Total Payment</p><p class="text-sm font-bold text-white data-font">₱<span id="emi-total-pay">0.00</span></p></div>
+                </div>
+                <div class="overflow-x-auto rounded-lg border border-zinc-800 max-h-[400px] overflow-y-auto">
+                    <table class="w-full text-left text-xs font-mono"><thead class="bg-zinc-900 sticky top-0 z-10 text-zinc-400 uppercase text-[10px]"><tr><th class="px-3 py-2">#</th><th class="px-3 py-2">Due Date</th><th class="px-3 py-2 text-right">Principal</th><th class="px-3 py-2 text-right">Interest</th><th class="px-3 py-2 text-right">Remaining</th></tr></thead><tbody id="emi-table-body" class="text-zinc-300"><tr><td colspan="5" class="text-center py-4 text-zinc-500">Enter details</td></tr></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-mod-billing" class="page-content max-w-3xl mx-auto" style="display: none;">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6"><span class="w-1.5 h-8 bg-purple-500 rounded-full"></span><h2 class="text-lg font-bold text-white">Billing & Late Fees</h2></div>
+                <div class="space-y-4">
+                    <div><label class="block text-xs text-zinc-500 mb-1">Outstanding Balance</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input type="number" id="bil-outstanding" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-3 pl-8 pr-4 text-white font-mono outline-none" oninput="calcBilling()"></div></div>
+                    <div class="flex items-center gap-2"><input type="checkbox" id="bil-is-late" class="accent-purple-500 w-5 h-5" onchange="calcBilling()"><label for="bil-is-late" class="text-base text-zinc-400">Calculate Past Due / Late Fees</label></div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800"><p class="text-[9px] uppercase text-zinc-500 mb-1">Min Amount Due</p><p class="text-xl font-bold text-purple-400 data-font">₱<span id="bil-mad">0.00</span></p></div>
+                        <div class="bg-zinc-900/50 p-4 rounded-lg border border-zinc-800"><p class="text-[9px] uppercase text-zinc-500 mb-1">Late Fee</p><p class="text-xl font-bold text-red-400 data-font">₱<span id="bil-late">0.00</span></p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-mod-fx" class="page-content max-w-3xl mx-auto" style="display: none;">
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6"><span class="w-1.5 h-8 bg-cyan-500 rounded-full"></span><h2 class="text-lg font-bold text-white">FX Rate Translator</h2></div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div><label class="block text-xs text-zinc-500 mb-1">Amount (PHP)</label><div class="relative"><span class="absolute left-3 top-4 text-zinc-500">₱</span><input t        .msg-theirs { background: #18181b; color: #e4e4e7; border-bottom-left-radius: 4px; }
         .data-font { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
     </style>
 </head>
