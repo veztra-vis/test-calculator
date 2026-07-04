@@ -242,6 +242,14 @@
                 document.getElementById('admin-nav-label').style.display = 'block';
                 document.getElementById('admin-nav-btn').style.display = 'block';
             }
+            
+            // Enable hitting "Enter" to send a message
+            document.getElementById('msg-input').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    sendMessage(e);
+                }
+            });
+
             loadUsers();
         }
 
@@ -284,8 +292,136 @@
             }
         }
 
-        function loadChannel(id, el) {
+        function  loadChannel(id, el) {
             currentChatTarget = { type: 'channel', id: id };
             document.getElementById('chat-title').innerText = '# ' + id;
             document.getElementById('chat-sub').innerText = 'Company-wide channel';
-            document.querySelectorAll('.ch-b
+            document.querySelectorAll('.ch-btn, .dm-btn').forEach(function(b) { b.classList.remove('sel'); });
+            if (el) el.classList.add('sel');
+            getMessages();
+        }
+
+        function loadDM(userId, el) {
+            let user = allUsers.find(u => u.employeeId === userId);
+            if (!user) return;
+            currentChatTarget = { type: 'dm', id: userId };
+            document.getElementById('chat-title').innerText = user.fullName;
+            document.getElementById('chat-sub').innerText = user.role;
+            document.querySelectorAll('.ch-btn, .dm-btn').forEach(function(b) { b.classList.remove('sel'); });
+            if (el) el.classList.add('sel');
+            getMessages();
+        }
+
+        async function getMessages() {
+            if (!currentChatTarget) return;
+            try {
+                let url = '/api/comms/messages?type=' + currentChatTarget.type + '&id=' + currentChatTarget.id;
+                let res = await fetch(url, { headers: { 'x-maya-token': token } });
+                if (!res.ok) throw new Error();
+                let messages = await res.json();
+                
+                let html = '';
+                messages.forEach(function(m) {
+                    let isMine = m.userId === currentUser.id;
+                    // Basic XSS protection
+                    let safeText = m.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    html += '<div class="msg ' + (isMine ? 'msg-mine' : 'msg-theirs') + '"><strong>' + (isMine ? 'You' : m.userName) + '</strong><br>' + safeText + '</div>';
+                });
+                
+                document.getElementById('chat-messages').innerHTML = html || '<p style="color:#52525b;font-size:14px;text-align:center;margin-top:40px;">No messages yet. Say hi!</p>';
+                let chatBox = document.getElementById('chat-messages');
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (e) {
+                document.getElementById('chat-messages').innerHTML = '<p style="color:#f87171;font-size:12px;text-align:center;">Failed to load messages.</p>';
+            }
+        }
+
+        async function sendMessage(e) {
+            if (e) e.preventDefault();
+            let input = document.getElementById('msg-input');
+            let text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            
+            try {
+                await fetch('/api/comms/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-maya-token': token },
+                    body: JSON.stringify({ type: currentChatTarget.type, targetId: currentChatTarget.id, text: text })
+                });
+                getMessages(); // Refresh messages immediately
+            } catch (err) {
+                alert('Failed to send message');
+            }
+        }
+
+        function startPolling() {
+            if (chatInterval) clearInterval(chatInterval);
+            chatInterval = setInterval(() => {
+                // Only poll if the comms page is currently open
+                if (document.getElementById('page-comms').classList.contains('active')) {
+                    getMessages();
+                }
+            }, 3000); // Polls every 3 seconds for new messages
+        }
+
+        // --- ADMIN LOGIC ---
+        async function loadAdminTable() {
+            try {
+                let res = await fetch('/api/admin/users', { headers: { 'x-maya-token': token } });
+                if (!res.ok) throw new Error();
+                let users = await res.json();
+                let html = '';
+                users.forEach(function(u) {
+                    html += '<tr><td style="font-family:monospace;">' + u.employeeId + '</td><td>' + u.fullName + '</td><td style="text-align:center;"><span class="role-tag">' + u.role + '</span></td><td style="text-align:right;"><button class="del-btn" onclick="deleteUser(\'' + u.employeeId + '\')">Delete</button></td></tr>';
+                });
+                document.getElementById('admin-tbody').innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:#52525b;padding:24px;">No users found.</td></tr>';
+            } catch (e) {
+                document.getElementById('admin-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#f87171;">Failed to load users</td></tr>';
+            }
+        }
+
+        async function createUser() {
+            let fullName = document.getElementById('c-fullname').value;
+            let empId = document.getElementById('c-empid').value;
+            let pass = document.getElementById('c-pass').value;
+            let role = document.getElementById('c-role').value;
+            
+            if (!fullName || !empId || !pass) return alert('Please fill all fields');
+            
+            try {
+                let res = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-maya-token': token },
+                    body: JSON.stringify({ fullName, employeeId: empId, password: pass, role })
+                });
+                if (!res.ok) throw new Error();
+                document.getElementById('c-fullname').value = '';
+                document.getElementById('c-empid').value = '';
+                document.getElementById('c-pass').value = '';
+                loadAdminTable();
+            } catch (e) {
+                alert('Failed to create user');
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Delete this user?')) return;
+            try {
+                await fetch('/api/admin/users/' + id, { 
+                    method: 'DELETE', 
+                    headers: { 'x-maya-token': token } 
+                });
+                loadAdminTable();
+            } catch (e) {
+                alert('Failed to delete');
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('maya_token');
+            window.location.href = '/';
+            }
+    </script>
+</body>
+</html>
