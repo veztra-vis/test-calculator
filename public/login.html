@@ -169,4 +169,131 @@
                 <div class="modal-actions"><button type="button" class="btn-ghost" onclick="closeForgotModal()">Cancel</button><button type="button" class="submit-btn" id="forgotVerifyBtn" onclick="verifyForgotUser()"><span class="btn-label">Continue</span><span class="btn-spinner"><svg viewBox="0 0 50 50"><circle class="track" cx="25" cy="25" r="20"/><circle class="arc" cx="25" cy="25" r="20"/></svg></span></button></div>
             </div>
 
-            <!-- Step 2: Verify Security Question (shown when user HAS a security question) -->
+            <!-- Step 2: Verify Security Question (Placeholder) -->
+            <div id="forgot
+                <h2 class="modal-title">Security Check</h2>
+                <p class="modal-desc">Answer your security question to proceed.</p>
+                <div class="field"><label class="field-label" for="securityAnswer">What is your favorite color?</label><input type="text" id="securityAnswer" class="field-input" placeholder="Enter answer"></div>
+                <div class="modal-actions"><button type="button" class="btn-ghost" onclick="closeForgotModal()">Cancel</button><button type="button" class="submit-btn" onclick="closeForgotModal()">Submit</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Check if user is already logged in
+        const token = localStorage.getItem('maya_token');
+        if (token) {
+            // If token exists, skip loading screen and go straight to index.html
+            window.location.href = '/index.html';
+        }
+
+        // 2. Handle Loading Screen Transition
+        window.addEventListener('load', () => {
+            // Wait 2.5 seconds to match the CSS progress bar animation
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('dismissed');
+                document.getElementById('pageContent').classList.add('visible');
+            }, 2500);
+        });
+        
+        // 3. Login Form Logic
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const alertBox = document.getElementById('login-alert');
+            const alertText = document.getElementById('login-alert-text');
+            const empId = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+
+            btn.classList.add('busy');
+            alertBox.classList.remove('show');
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: empId, password: pass })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Save token and redirect to index.html
+                    localStorage.setItem('maya_token', data.token);
+                    window.location.href = '/index.html';
+                } else {
+                    // Show error
+                    alertText.innerText = data.message || 'Authentication failed. Check your credentials.';
+                    alertBox.classList.add('show');
+                    btn.classList.remove('busy');
+                    }
+            } catch (err) {
+                alertText.innerText = 'Network error. Please try again.';
+                alertBox.classList.add('show');
+                btn.classList.remove('busy');
+            }
+        });
+
+        // Toggle Password Visibility
+        function togglePw(id, btn) {
+            const input = document.getElementById(id);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.style.color = '#00D17A';
+            } else {
+                input.type = 'password';
+                btn.style.color = '#52525b';
+            }
+        }
+
+        // Forgot Password Modal Logic
+        function openForgotModal() {
+            document.getElementById('forgotModal').classList.add('open');
+        }
+
+        function closeForgotModal() {
+            document.getElementById('forgotModal').classList.remove('open');
+            // Reset to step 1
+            document.getElementById('forgotStep1').classList.add('active');
+            document.getElementById('forgotStep2').classList.remove('active');
+            document.getElementById('forgotUser').value = '';
+        }
+
+        async function verifyForgotUser() {
+            const btn = document.getElementById('forgotVerifyBtn');
+            const alertBox = document.getElementById('forgot-alert-1');
+            const alertText = document.getElementById('forgot-alert-text-1');
+            const user = document.getElementById('forgotUser').value;
+
+            if (!user) return;
+
+            btn.classList.add('busy');
+            alertBox.classList.remove('show');
+
+            try {
+                // This is a placeholder API call. Adjust to your actual endpoint if needed.
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ employeeId: user })
+                });
+
+                if (res.ok) {
+                    // Move to step 2
+                    document.getElementById('forgotStep1').classList.remove('active');
+                    document.getElementById('forgotStep2').classList.add('active');
+                } else {
+                    const data = await res.json();
+                    alertText.innerText = data.message || 'User not found.';
+                    alertBox.classList.add('show');
+                }
+            } catch (err) {
+                alertText.innerText = 'Network error.';
+                alertBox.classList.add('show');
+            } finally {
+                btn.classList.remove('busy');
+            }
+        }
+    </script>
+</body>
+</html>
