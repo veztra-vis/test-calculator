@@ -3,242 +3,289 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Maya | Internal Terminal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } }
-    </script>
+    <title>Maya | Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #08090A; }
-        * { -webkit-tap-highlight-color: transparent; }
-        button, a { touch-action: manipulation; }
+        /* CRITICAL BASE STYLES (No CDN dependency) */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background: #08090A; color: #e4e4e7; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        button, a { touch-action: manipulation; cursor: pointer; }
+        input, select, textarea { font-size: 16px !important; } /* Stops tablet zoom */
+        
+        /* Layout */
+        .app-wrapper { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .main-content { flex: 1; overflow-y: auto; background: #08090A; padding: 20px; }
+        @media (min-width: 768px) { .main-content { padding: 40px; } }
+
+        /* Sidebar */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 40; backdrop-filter: blur(2px); display: none; }
+        .sidebar-overlay.open { display: block; }
+        .sidebar { position: fixed; top: 0; left: 0; width: 300px; height: 100%; background: #09090b; border-right: 1px solid #27272a; display: flex; flex-direction: column; z-index: 50; transform: translateX(-100%); transition: transform 0.3s ease; }
+        .sidebar.open { transform: translateX(0); }
+        @media (min-width: 768px) { .sidebar { position: relative; transform: translateX(0); } }
+
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #27272a; display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo { width: 40px; height: 40px; border-radius: 10px; background: rgba(0, 209, 122, 0.1); border: 1px solid rgba(0, 209, 122, 0.3); display: flex; align-items: center; justify-content: center; color: #00D17A; font-weight: 800; font-size: 18px; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 16px 12px; }
+        .sidebar-footer { padding: 16px; border-top: 1px solid #27272a; display: flex; align-items: center; gap: 12px; background: #09090b; }
+        
+        .nav-btn { width: 100%; text-align: left; padding: 12px 16px; font-size: 15px; color: #a1a1aa; background: none; border: none; border-left: 3px solid transparent; border-radius: 0 8px 8px 0; display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+        .nav-btn:hover, .nav-btn.active { background: rgba(0, 209, 122, 0.08); border-left-color: #00D17A; color: white; }
+        .nav-label { padding: 16px 16px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #52525b; font-weight: 600; display: none; }
+        
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #09090b; border-bottom: 1px solid #27272a; z-index: 30; }
+        @media (min-width: 768px) { .topbar { display: none; } }
+
+        /* Pages */
+        .page { display: none; }
+        .page.active { display: block; }
+        .page-chat.active { display: flex; }
+
+        /* Dashboard */
+        .dash-grid { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 800px; margin: 0 auto; }
+        @media (min-width: 768px) { .dash-grid { grid-template-columns: 1fr 1fr; } }
+        .dash-card { background: rgba(24, 24, 27, 0.8); border: 1px solid #27272a; border-radius: 16px; padding: 32px; text-align: left; transition: border 0.2s; }
+        .dash-card:active { border-color: #00D17A; }
+
+        /* Chat */
+        .chat-container { height: calc(100vh - 120px); max-width: 1000px; margin: 0 auto; display: flex; background: rgba(24, 24, 27, 0.8); border: 1px solid #27272a; border-radius: 16px; overflow: hidden; }
+        @media (min-width: 768px) { .chat-container { height: calc(100vh - 80px); } }
+        .chat-sidebar { width: 220px; border-right: 1px solid #27272a; display: flex; flex-direction: column; flex-shrink: 0; }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: #09090b; }
+        .chat-header { padding: 16px; border-bottom: 1px solid #27272a; background: rgba(24, 24, 27, 0.5); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-input-area { padding: 16px; border-top: 1px solid #27272a; background: rgba(24, 24, 27, 0.3); display: flex; gap: 12px; }
+        .chat-input-area input { flex: 1; background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; padding: 12px 16px; color: white; outline: none; }
+        .chat-input-area input:focus { border-color: #00D17A; }
+        .chat-input-area button { background: #00D17A; color: #08090A; font-weight: 700; padding: 12px 24px; border-radius: 12px; border: none; font-size: 15px; }
+        
+        .ch-btn { width: 100%; text-align: left; padding: 12px; font-size: 14px; color: #d4d4d8; background: none; border: none; border-radius: 8px; display: flex; align-items: center; gap: 8px; }
+        .ch-btn:active, .ch-btn.sel { background: #18181b; }
+        .dm-btn { width: 100%; text-align: left; padding: 10px 12px; font-size: 13px; color: #d4d4d8; background: none; border: none; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; }
+        .dm-btn:active, .dm-btn.sel { background: #18181b; }
+        
+        .msg { max-width: 75%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.4; }
+        .msg-mine { background: #00995A; color: white; border-bottom-right-radius: 4px; align-self: flex-end; }
+        .msg-theirs { background: #18181b; color: #e4e4e7; border-bottom-left-radius: 4px; align-self: flex-start; }
+        .role-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 4px; background: rgba(0, 209, 122, 0.15); color: #00D17A; }
+
+        /* Admin */
+        .admin-panel { max-width: 900px; margin: 0 auto; background: rgba(24, 24, 27, 0.8); border: 1px solid #27272a; border-radius: 16px; padding: 24px; padding-bottom: 80px; }
+        .admin-input { width: 100%; background: #18181b; border: 1px solid #27272a; border-radius: 10px; padding: 14px; color: white; outline: none; margin-bottom: 12px; }
+        .admin-input:focus { border-color: #00D17A; }
+        .btn-primary { background: #00D17A; color: #08090A; font-weight: 700; padding: 12px 20px; border-radius: 10px; border: none; font-size: 14px; }
+        .btn-sm { font-size: 12px; padding: 8px 16px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; margin-top: 20px; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid #1e1e20; }
+        th { background: #09090b; color: #a1a1aa; font-size: 11px; text-transform: uppercase; }
+        .del-btn { background: none; border: 1px solid rgba(239,68,68,0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+
+        /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
-        input, select, textarea { font-size: 16px !important; }
-        .sidebar-item { transition: all 0.2s; border-left: 3px solid transparent; }
-        .sidebar-item:hover, .sidebar-item.active { background: rgba(0, 209, 122, 0.08); border-left-color: #00D17A; color: white; }
-        .glass-panel { background: rgba(17, 17, 19, 0.8); border: 1px solid #1e1e20; }
-        .role-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
-        .role-tag-admin { background: rgba(0, 209, 122, 0.15); color: #00D17A; }
-        .role-tag-agent { background: rgba(113, 113, 122, 0.15); color: #a1a1aa; }
-        .role-tag-team leader { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-        .role-tag-operations manager { background: rgba(0, 153, 90, 0.15); color: #34d399; }
-        .msg-mine { background: #00995A; color: white; border-radius: 16px 16px 4px 16px; }
-        .msg-theirs { background: #18181b; color: #e4e4e7; border-radius: 16px 16px 16px 4px; }
     </style>
 </head>
-<body class="text-zinc-100 font-sans h-screen flex flex-col overflow-hidden">
+<body>
 
-    <div class="md:hidden flex items-center justify-between p-4 bg-zinc-950 border-b border-zinc-800 z-30 flex-shrink-0">
-        <button onclick="toggleSidebar()" class="text-zinc-400 hover:text-white p-1">
-            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <div class="topbar">
+        <button onclick="toggleSidebar()" style="background:none;border:none;color:#a1a1aa;padding:8px;">
+            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
-        <h1 class="text-base font-bold text-white">Maya Terminal</h1>
-        <div class="w-8"></div>
+        <h1 style="font-size:16px;font-weight:700;color:white;">Maya Terminal</h1>
+        <div style="width:40px;"></div>
     </div>
 
-    <div class="flex flex-1 overflow-hidden relative">
-        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden md:hidden" style="backdrop-filter: blur(2px);"></div>
+    <div class="app-wrapper">
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-        <aside id="sidebar" class="fixed md:relative inset-y-0 left-0 z-50 w-72 bg-zinc-950 border-r border-zinc-800 flex flex-col h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex-shrink-0">
-            <div class="p-5 border-b border-zinc-800 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg">M</div>
-                <div><h1 class="text-lg font-bold text-white">Maya Terminal</h1><p class="text-[9px] text-zinc-500 uppercase tracking-widest">Operations Hub</p></div>
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">M</div>
+                <div><h1 style="font-size:16px;font-weight:700;color:white;">Maya Terminal</h1><p style="font-size:10px;color:#52525b;text-transform:uppercase;letter-spacing:0.1em;">Operations Hub</p></div>
             </div>
-            <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-                <button onclick="showPage('dashboard')" class="sidebar-item active w-full text-left px-4 py-3 text-base text-zinc-400 rounded-r-lg flex items-center gap-3" data-page="dashboard">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                    Dashboard
-                </button>
-                <button onclick="showPage('comms')" class="sidebar-item w-full text-left px-4 py-3 text-base text-zinc-400 rounded-r-lg flex items-center gap-3" data-page="comms">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                    Floor Comms
-                </button>
-                
-                <p class="px-4 text-[9px] uppercase tracking-widest text-zinc-600 mt-6 mb-2 font-semibold" id="admin-nav-header" style="display:none;">Administration</p>
-                <button onclick="showPage('mod-admin')" id="admin-nav-btn" class="sidebar-item w-full text-left px-4 py-3 text-base text-zinc-400 rounded-r-lg flex items-center gap-3" data-page="mod-admin" style="display:none;">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
-                    User Management
-                </button>
-            </nav>
-            <div class="p-4 border-t border-zinc-800 bg-zinc-950 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-bold text-emerald-400" id="sidebar-avatar">A</div>
-                <div class="flex-1 min-w-0 truncate"><p class="text-sm font-medium text-zinc-200 truncate" id="sidebar-name">User</p><p class="text-[10px] text-zinc-500 truncate" id="sidebar-role">Role</p></div>
-                <button onclick="handleLogout()" class="text-zinc-600 hover:text-red-400 p-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg></button>
-            </div>
-        </aside>
-
-        <main class="flex-1 overflow-y-auto bg-zinc-950 p-4 md:p-8">
             
-            <div id="page-dashboard" class="page-content max-w-4xl mx-auto">
-                <h2 class="text-2xl font-bold text-white mb-2">Welcome back, <span id="dash-name" class="text-emerald-400">User</span></h2>
-                <p class="text-zinc-500 mb-10">Internal Operations Hub</p>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <button onclick="showPage('comms')" class="glass-panel rounded-xl p-8 text-left hover:border-emerald-500/50 transition-all group">
-                        <div class="w-12 h-12 rounded-xl bg-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-1">Floor Comms</h3>
-                        <p class="text-zinc-500 text-sm">Open the team chat to communicate with agents and managers.</p>
+            <div class="sidebar-nav">
+                <button class="nav-btn active" onclick="showPage('dashboard', this)" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" onclick="showPage('comms', this)" data-page="comms">💬 Floor Comms</button>
+                
+                <div id="admin-nav-label" class="nav-label" style="display:none;">Administration</div>
+                <button id="admin-nav-btn" class="nav-btn" onclick="showPage('admin', this)" data-page="admin" style="display:none;">User Management</button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div id="sidebar-avatar" style="width:36px;height:36px;border-radius:50%;background:#18181b;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#00D17A;">A</div>
+                <div style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+                    <div id="sidebar-name" style="font-size:14px;font-weight:500;color:#e4e4e7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">User</div>
+                    <div id="sidebar-role" style="font-size:11px;color:#71717a;">Role</div>
+                </div>
+                <button onclick="handleLogout()" style="background:none;border:none;color:#52525b;padding:8px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            
+            <!-- DASHBOARD -->
+            <div id="page-dashboard" class="page active">
+                <h2 style="font-size:24px;font-weight:700;color:white;margin-bottom:8px;">Welcome back, <span id="dash-name" style="color:#00D17A;">User</span></h2>
+                <p style="color:#71717a;margin-bottom:40px;">Internal Operations Hub</p>
+                <div class="dash-grid">
+                    <button class="dash-card" onclick="showPage('comms')">
+                        <div style="width:48px;height:48px;border-radius:12px;background:rgba(0,209,122,0.1);border:1px solid rgba(0,209,122,0.2);display:flex;align-items:center;justify-content:center;color:#00D17A;margin-bottom:16px;">💬</div>
+                        <h3 style="font-size:20px;font-weight:700;color:white;margin-bottom:8px;">Floor Comms</h3>
+                        <p style="color:#71717a;font-size:14px;">Open the team chat to communicate with agents and managers.</p>
                     </button>
-                    <div class="glass-panel rounded-xl p-8">
-                        <div class="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-1">System Status</h3>
-                        <div class="flex items-center gap-2 mt-2">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <p class="text-zinc-400 text-sm font-medium">All Systems Operational</p>
+                    <div class="dash-card">
+                        <div style="width:48px;height:48px;border-radius:12px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;color:#60a5fa;margin-bottom:16px;">✅</div>
+                        <h3 style="font-size:20px;font-weight:700;color:white;margin-bottom:8px;">System Status</h3>
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#00D17A;display:inline-block;"></span>
+                            <p style="color:#a1a1aa;font-size:14px;">All Systems Operational</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="page-comms" class="page-content h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] max-w-6xl mx-auto flex glass-panel rounded-xl overflow-hidden" style="display: none;">
-                <div class="w-56 border-r border-zinc-800 flex flex-col bg-zinc-950/50 flex-shrink-0">
-                    <div class="p-4 border-b border-zinc-800"><h3 class="font-bold text-sm text-white">Channels</h3></div>
-                    <div class="flex-1 overflow-y-auto p-2">
-                        <button onclick="loadChannel('general', this)" class="w-full text-left px-3 py-3 rounded-md text-sm text-zinc-300 bg-zinc-800 flex items-center gap-2 mb-1 ch-btn active-ch"><span class="text-zinc-500">#</span> general</button>
-                        <button onclick="loadChannel('announcements', this)" class="w-full text-left px-3 py-3 rounded-md text-sm text-zinc-300 hover:bg-zinc-800 flex items-center gap-2 mb-4 ch-btn"><span class="text-zinc-500">#</span> announcements</button>
-                        <p class="px-3 text-[9px] uppercase tracking-widest text-zinc-600 mb-2 font-semibold">Members</p>
-                        <div id="dm-list" class="space-y-1"></div>
-                    </div>
-                </div>
-                <div class="flex-1 flex flex-col bg-zinc-950">
-                    <div class="p-4 border-b border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
-                        <div><h3 class="font-bold text-sm text-white" id="chat-header-title"># general</h3><p class="text-[10px] text-zinc-500" id="chat-header-sub">Company-wide updates</p></div>
-                    </div>
-                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col"><p class="text-zinc-600 text-sm text-center mt-10">Connecting to server...</p></div>
-                    <div class="p-4 border-t border-zinc-800 bg-zinc-900/30">
-                        <form onsubmit="sendMessage(event)" class="flex gap-3">
-                            <input type="text" id="msg-input" placeholder="Type a message..." class="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-500 outline-none focus:border-emerald-500" autocomplete="off">
-                            <button type="submit" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl">Send</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div id="page-mod-admin" class="page-content max-w-5xl mx-auto pb-20" style="display: none;">
-                <div class="glass-panel rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex items-center gap-3"><span class="w-1.5 h-8 bg-emerald-500 rounded-full"></span><h2 class="text-lg font-bold text-white">User Management</h2></div>
-                        <button onclick="document.getElementById('admin-create-form').classList.toggle('hidden')" class="px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg">Create User</button>
-                    </div>
-                    <div id="admin-create-form" class="hidden mb-6 bg-zinc-950/50 border border-zinc-800 rounded-xl p-5">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <input type="text" id="c-fullname" placeholder="Full Name" class="bg-zinc-900 border border-zinc-800 rounded-lg py-3 px-3 text-white outline-none">
-                            <input type="text" id="c-empid" placeholder="Employee ID" class="bg-zinc-900 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none">
-                            <input type="password" id="c-pass" placeholder="Password" class="bg-zinc-900 border border-zinc-800 rounded-lg py-3 px-3 text-white font-mono outline-none">
-                            <select id="c-role" class="bg-zinc-900 border border-zinc-800 rounded-lg py-3 px-3 text-white outline-none"><option value="AGENT">Agent</option><option value="TRAINING">Training</option><option value="TEAM LEADER">Team Leader</option><option value="OPERATIONS MANAGER">Ops Manager</option></select>
+            <!-- COMMS -->
+            <div id="page-comms" class="page page-chat">
+                <div class="chat-container">
+                    <div class="chat-sidebar">
+                        <div class="chat-header"><h3 style="font-size:14px;font-weight:700;color:white;">Channels</h3></div>
+                        <div style="flex:1;overflow-y:auto;padding:8px;">
+                            <button class="ch-btn sel" onclick="loadChannel('general', this)"><span style="color:#71717a;">#</span> general</button>
+                            <button class="ch-btn" onclick="loadChannel('announcements', this)"><span style="color:#71717a;">#</span> announcements</button>
+                            <div style="padding:12px 12px 8px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#52525b;font-weight:600;">Members</div>
+                            <div id="dm-list"></div>
                         </div>
-                        <button onclick="createUser()" class="px-5 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg">Save User</button>
                     </div>
-                    <div class="overflow-x-auto rounded-lg border border-zinc-800">
-                        <table class="w-full text-left text-sm"><thead class="bg-zinc-900 text-zinc-400 uppercase text-xs"><tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">Name</th><th class="px-4 py-3 text-center">Role</th><th class="px-4 py-3 text-right">Action</th></tr></thead><tbody id="admin-users-tbody" class="text-zinc-300 divide-y divide-zinc-800/50"><tr><td colspan="4" class="text-center py-6 text-zinc-500">Loading...</td></tr></tbody></table>
+                    <div class="chat-main">
+                        <div class="chat-header">
+                            <h3 id="chat-title" style="font-size:14px;font-weight:700;color:white;"># general</h3>
+                            <p id="chat-sub" style="font-size:11px;color:#71717a;">Company-wide updates</p>
+                        </div>
+                        <div id="chat-messages" class="chat-messages">
+                            <p style="color:#52525b;font-size:14px;text-align:center;margin-top:40px;">Connecting...</p>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="off">
+                            <button onclick="sendMessage(event)">Send</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-        </main>
+            <!-- ADMIN -->
+            <div id="page-admin" class="page">
+                <div class="admin-panel">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+                        <h2 style="font-size:18px;font-weight:700;color:white;">User Management</h2>
+                        <button class="btn-primary btn-sm" onclick="document.getElementById('create-form').style.display = document.getElementById('create-form').style.display === 'none' ? 'block' : 'none'">Create User</button>
+                    </div>
+                    
+                    <div id="create-form" style="display:none;background:#09090b;border:1px solid #27272a;border-radius:12px;padding:20px;margin-bottom:24px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                            <input type="text" id="c-fullname" placeholder="Full Name" class="admin-input">
+                            <input type="text" id="c-empid" placeholder="Employee ID" class="admin-input" style="font-family:monospace;">
+                            <input type="password" id="c-pass" placeholder="Password" class="admin-input" style="font-family:monospace;">
+                            <select id="c-role" class="admin-input"><option value="AGENT">Agent</option><option value="TRAINING">Training</option><option value="TEAM LEADER">Team Leader</option><option value="OPERATIONS MANAGER">Ops Manager</option></select>
+                        </div>
+                        <button class="btn-primary" onclick="createUser()">Save User</button>
+                    </div>
+
+                    <div style="overflow-x:auto;border:1px solid #27272a;border-radius:10px;">
+                        <table>
+                            <thead><tr><th>ID</th><th>Name</th><th style="text-align:center;">Role</th><th style="text-align:right;">Action</th></tr></thead>
+                            <tbody id="admin-tbody"><tr><td colspan="4" style="text-align:center;color:#52525b;padding:24px;">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <script>
-        let currentUser = null, token = localStorage.getItem('maya_token') || null, allUsers = [], currentChatTarget = { type: 'channel', id: 'general' }, chatInterval = null;
+        let currentUser = null;
+        let token = localStorage.getItem('maya_token') || null;
+        let allUsers = [];
+        let currentChatTarget = { type: 'channel', id: 'general' };
+        let chatInterval = null;
 
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('-translate-x-full');
-            document.getElementById('sidebar-overlay').classList.toggle('hidden');
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('open');
         }
 
-        window.onload = async () => {
+        window.onload = async function() {
             if (!token) return window.location.href = '/';
             try {
                 let res = await fetch('/api/auth/verify', { headers: { 'x-maya-token': token } });
-                if (!res.ok) throw new Error();
-                currentUser = (await res.json()).user;
-                initUI(); 
-                startCommsPolling();
-            } catch (e) { window.location.href = '/'; }
+                if (!res.ok) throw new Error('Auth failed');
+                let data = await res.json();
+                currentUser = data.user;
+                setupUI();
+                startPolling();
+            } catch (e) {
+                window.location.href = '/';
+            }
         };
 
-        function initUI() {
+        function setupUI() {
             document.getElementById('sidebar-name').innerText = currentUser.name;
             document.getElementById('sidebar-role').innerText = currentUser.role;
             document.getElementById('sidebar-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
             document.getElementById('dash-name').innerText = currentUser.name.split(' ')[0];
-            if (['ADMIN', 'OPERATIONS MANAGER', 'TEAM LEADER'].includes(currentUser.role)) { 
-                document.getElementById('admin-nav-header').style.display = 'block'; 
-                document.getElementById('admin-nav-btn').style.display = 'flex'; 
+            
+            if (['ADMIN', 'OPERATIONS MANAGER', 'TEAM LEADER'].includes(currentUser.role)) {
+                document.getElementById('admin-nav-label').style.display = 'block';
+                document.getElementById('admin-nav-btn').style.display = 'block';
             }
-            loadDMList();
+            loadUsers();
         }
 
-        function showPage(p) {
-            if (window.innerWidth < 768) { 
-                document.getElementById('sidebar').classList.add('-translate-x-full');
-                document.getElementById('sidebar-overlay').classList.add('hidden');
+        function showPage(pageId, btnEl) {
+            // Close sidebar on tablet
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebar-overlay').classList.remove('open');
             }
-            document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
-            document.getElementById('page-' + p).style.display = p === 'comms' ? 'flex' : 'block';
-            document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
-            document.querySelector(`[data-page="${p}"]`)?.classList.add('active');
-            if (p === 'mod-admin') loadAdminUsers();
-            if (p === 'comms') fetchMessages();
+
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+            
+            // Show selected page
+            let targetPage = document.getElementById('page-' + pageId);
+            if (targetPage) targetPage.classList.add('active');
+
+            // Highlight nav
+            document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+            if (btnEl) btnEl.classList.add('active');
+
+            // Load data if needed
+            if (pageId === 'admin') loadAdminTable();
+            if (pageId === 'comms') getMessages();
         }
 
-        async function loadDMList() {
+        // --- CHAT LOGIC ---
+        async function loadUsers() {
             try {
                 let res = await fetch('/api/comms/users', { headers: { 'x-maya-token': token } });
                 if (!res.ok) throw new Error();
                 allUsers = await res.json();
-                document.getElementById('dm-list').innerHTML = allUsers.filter(u => u.employeeId !== currentUser.id).map(u => `
-                    <button onclick="loadDM('${u.employeeId}', this)" class="w-full text-left px-3 py-2 rounded-md text-sm text-zinc-300 hover:bg-zinc-800 flex items-center justify-between dm-btn">
-                        <span class="truncate">${u.fullName}</span> 
-                        <span class="role-tag role-tag-${u.role.toLowerCase()} ml-2">${u.role.split(' ')[0]}</span>
-                    </button>`).join('');
-            } catch (e) { document.getElementById('dm-list').innerHTML = '<p class="text-xs text-red-400 px-2">Error loading users</p>'; }
+                let html = '';
+                allUsers.filter(function(u) { return u.employeeId !== currentUser.id; }).forEach(function(u) {
+                    html += '<button class="dm-btn" onclick="loadDM(\'' + u.employeeId + '\', this)"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + u.fullName + '</span><span class="role-tag" style="margin-left:8px;">' + u.role.split(' ')[0] + '</span></button>';
+                });
+                document.getElementById('dm-list').innerHTML = html;
+            } catch (e) {
+                document.getElementById('dm-list').innerHTML = '<p style="color:#f87171;font-size:12px;padding:8px;">Failed to load</p>';
+            }
         }
 
         function loadChannel(id, el) {
-            currentChatTarget = { type: 'channel', id };
-            document.getElementById('chat-header-title').innerText = '# ' + id;
-            document.getElementById('chat-header-sub').innerText = 'Company-wide channel';
-            document.querySelectorAll('.ch-btn').forEach(b => b.classList.remove('bg-zinc-800')); if(el) el.classList.add('bg-zinc-800');
-            document.querySelectorAll('.dm-btn').forEach(b => b.classList.remove('bg-zinc-800'));
-            fetchMessages();
-        }
-
-        function loadDM(id, el) {
-            currentChatTarget = { type: 'dm', id };
-            let user = allUsers.find(u => u.employeeId === id);
-            document.getElementById('chat-header-title').innerText = user.fullName;
-            document.getElementById('chat-header-sub').innerText = user.role;
-            document.querySelectorAll('.dm-btn').forEach(b => b.classList.remove('bg-zinc-800')); if(el) el.classList.add('bg-zinc-800');
-            document.querySelectorAll('.ch-btn').forEach(b => b.classList.remove('bg-zinc-800'));
-            fetchMessages();
-        }
-
-        async function fetchMessages() {
-            let url = '/api/comms/messages?' + (currentChatTarget.type === 'dm' ? `recipientId=${currentChatTarget.id}` : `channel=${currentChatTarget.id}`);
-            try {
-                let res = await fetch(url, { headers: { 'x-maya-token': token } });
-                if (!res.ok) throw new Error();
-                let msgs = await res.json();
-                let c = document.getElementById('chat-messages');
-                if (!msgs.length) { c.innerHTML = '<p class="text-zinc-600 text-sm text-center mt-10">No messages yet. Say hello!</p>'; return; }
-                let html = '', lastDate = '';
-                msgs.forEach(m => {
-                    let d = new Date(m.createdAt).toLocaleDateString();
-                    if (d !== lastDate) { html += `<div class="text-center text-zinc-600 text-[10px] uppercase tracking-widest my-4">${d}</div>`; lastDate = d; }
-                    let isMine = m.senderId === currentUser.id;
-                    html += `<div class="flex ${isMine ? 'justify-end' : 'justify-start'}">
-                        <div class="msg-bubble px-4 py-3 max-w-[75%] ${isMine ? 'msg-mine' : 'msg-theirs'}">
-                            ${!isMine ? `<p class="text-[10px] font-bold text-emerald-400 mb-1">${m.senderName}</p>` : ''}
-                            <p>${m.text.replace(/</g, "&lt;")}</p>
-                            <p class="text-[9px] ${isMine ? 'text-emerald-200' : 'text-zinc-500'} text-right mt-1">${new Date(m.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                        </div>
-                    </div>`;
-                });
-                c.innerHTML = html; c.scrollTop =
+            currentChatTarget = { type: 'channel', id: id };
+            document.getElementById('chat-title').innerText = '# ' + id;
+            document.getElementById('chat-sub').innerText = 'Company-wide channel';
+            document.querySelectorAll('.ch-b
